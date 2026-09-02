@@ -42,3 +42,8 @@ This document defines architectural constraints, design standards, and coding co
 - **Dynamic Forecast Step**: Calculate `target_step` (+6h, +12h, etc.) dynamically so that `valid_time > current_utc_time`.
 - **GNOME Integration**: Apply generated wallpaper using `gsettings set org.gnome.desktop.background picture-uri`.
 - **Systemd Automation**: User units located in `systemd/` (`synoptic-bg.service` and `synoptic-bg.timer`).
+
+---
+
+## 5. Version Control & Git Conventions
+- **Commit Messages**: Always write Git commit messages strictly in English (e.g., using Conventional Commits such as `feat: ...`, `fix: ...`).
