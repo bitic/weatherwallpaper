@@ -1,0 +1,24 @@
+# Environments
+.venv/
+env/
+venv/
+
+# Python bytecode & cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Weather wallpaper cache & GRIB data
+*.grib2
+*.idx
+.cache/
+~/.cache/weatherwallpaper/
+
+# Configuration dotfile
+.weatherwallpaper.conf
+
+# IDE & System
+.vscode/
+.idea/
+.DS_Store

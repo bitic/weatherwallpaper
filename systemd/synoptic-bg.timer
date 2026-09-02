@@ -1,0 +1,9 @@
+[Unit]
+Description=ECMWF IFS Weather Wallpaper Periodic Timer (Every 3 hours)
+
+[Timer]
+OnCalendar=*:00/3
+Persistent=true
+
+[Install]
+WantedBy=timers.target

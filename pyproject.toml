@@ -1,0 +1,17 @@
+[project]
+name = "weatherwallpaper"
+version = "0.1.0"
+description = "Fons de pantalla meteorològic dinàmic per a GNOME basat en dades ECMWF IFS i estètica Tokyo Night."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "ecmwf-opendata",
+    "xarray",
+    "cfgrib",
+    "eccodes",
+    "matplotlib",
+    "cartopy",
+    "numpy",
+    "scipy",
+    "pandas"
+]
