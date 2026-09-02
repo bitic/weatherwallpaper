@@ -578,7 +578,16 @@ def generate_wallpaper():
     except Exception as e:
         print(f"Avís: No s'ha pogut actualitzar gsettings: {e}")
 
-    # Clean temporary cfgrib indices
+    # Clean temporary cfgrib indices and obsolete GRIB2 datasets
+    current_files = {os.path.basename(sfc_cache), os.path.basename(pl_cache)}
+    for grib_file in glob.glob(os.path.join(cache_dir, "*.grib2")):
+        if os.path.basename(grib_file) not in current_files:
+            try:
+                os.remove(grib_file)
+                print(f"Esborrat fitxer de dades obsolet: {os.path.basename(grib_file)}")
+            except OSError as e:
+                print(f"Avís: no s'ha pogut esborrar {grib_file}: {e}")
+
     for idx in glob.glob(os.path.join(cache_dir, "*.idx")) + glob.glob("/tmp/*.idx"):
         try:
             os.remove(idx)
