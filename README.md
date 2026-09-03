@@ -1,6 +1,6 @@
 # 🌤️ WeatherWallpaper (ECMWF IFS Synoptic Desktop Background)
 
-**WeatherWallpaper** is an automated wallpaper generator for Linux (Ubuntu / GNOME) that periodically retrieves operational numerical weather prediction data from the **ECMWF IFS Open Data** portal (0.25° resolution) and renders a high-definition synoptic desktop wallpaper tailored dynamically to your display's resolution, styled with a **Tokyo Night** aesthetic.
+**WeatherWallpaper** is an automated wallpaper generator for Linux (Ubuntu / GNOME) that periodically retrieves operational numerical weather prediction data from the **ECMWF IFS Open Data** portal (0.25° resolution) and renders a high-definition synoptic desktop wallpaper tailored dynamically to your display's resolution, styled with modular color themes (**Dracula** by default).
 
 ![WeatherWallpaper Preview](assets/preview.png)
 
@@ -12,7 +12,8 @@
 - **Dynamic Future Forecast Step**: Automatically computes and selects the nearest future forecast step (+6h, +12h, etc.) based on the latest published model run.
 - **Dynamic Screen Resolution**: Detects display resolution on the fly across X11, Wayland, GNOME, or DRM sysfs (e.g. `3072x1920`, `3840x2160`, `1920x1080`).
 - **Synoptic Weather Layers**:
-  1. **850 hPa Temperature (T850)**: Smooth continuous gradient with a custom vibrant *Tokyo Night* colormap.
+  1. **850 hPa Temperature (T850)**: Smooth continuous gradient styled according to the active color theme.
+
   2. **Accumulated Precipitation (TP)**: Translucent electric-blue contours for rainfall > 1 mm.
   3. **Mean Sea Level Pressure (MSLP)**: High-definition white isobars spaced every 4 hPa.
   4. **High (H) and Low (L) Pressure Centers**: Automatically located and labeled with local pressure values.
