@@ -103,12 +103,12 @@ def load_config():
         }
         try:
             with open(default_path, 'w') as f:
-                f.write("# Fitxer de configuració de Weather Wallpaper\n")
+                f.write("# Weather Wallpaper Configuration File\n")
                 config.write(f)
-            print(f"Fitxer de configuració creat amb valors per defecte a: {default_path}")
+            print(f"Configuration file created with default values at: {default_path}")
             found_file = default_path
         except Exception as e:
-            print(f"Avís: no s'ha pogut crear el fitxer de configuració: {e}")
+            print(f"Warning: Could not create configuration file: {e}")
 
     try:
         section = config['MAP'] if 'MAP' in config else (config[config.sections()[0]] if config.sections() else {})
@@ -121,9 +121,9 @@ def load_config():
             'max_latitude': float(section.get('max_latitude', defaults['max_latitude'])),
             'show_z500': section.getboolean('show_z500', fallback=defaults['show_z500'])
         }
-        print(f"Configuració carregada des de '{found_file}': Centre=({cfg['central_longitude']}, {cfg['central_latitude']}), Z500={cfg['show_z500']}")
+        print(f"Configuration loaded from '{found_file}': Center=({cfg['central_longitude']}, {cfg['central_latitude']}), Z500={cfg['show_z500']}")
     except Exception as e:
-        print(f"Avís: Error llegint configuració ({e}). Utilitzant valors per defecte.")
+        print(f"Warning: Error reading configuration ({e}). Using default values.")
         cfg = defaults
 
     return cfg
@@ -153,10 +153,10 @@ def get_ecmwf_client_and_latest():
         try:
             client = Client(source=src)
             latest_run = client.latest()
-            print(f"Font ECMWF trobada '{src}' (Última passada disponible: {latest_run})")
+            print(f"ECMWF source found '{src}' (Latest available run: {latest_run})")
             return client, latest_run, src
         except Exception as e:
-            print(f"Avís: no s'ha pogut consultar la font {src}: {e}")
+            print(f"Warning: Could not query source {src}: {e}")
     
     fallback_client = Client(source="azure")
     return fallback_client, datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None), "azure"
@@ -244,14 +244,14 @@ def generate_wallpaper():
 
     # 2. Detect dynamic screen resolution of current machine
     screen_w, screen_h = get_screen_resolution()
-    print(f"Resolució detectada de la pantalla: {screen_w}x{screen_h}")
+    print(f"Detected screen resolution: {screen_w}x{screen_h}")
 
     # 3. Get latest available run and determine dynamic future step
     client, latest_run, active_src = get_ecmwf_client_and_latest()
     target_step, now_utc = calculate_target_future_step(latest_run)
     
     valid_dt = latest_run + datetime.timedelta(hours=target_step)
-    print(f"Pas de temps objectiu (futur): +{target_step}h -> Vàlid a les {valid_dt} UTC")
+    print(f"Target forecast step: +{target_step}h -> Valid at {valid_dt} UTC")
 
     sfc_cache = os.path.join(cache_dir, f"ecmwf_ifs_sfc_step{target_step}.grib2")
     pl_cache = os.path.join(cache_dir, f"ecmwf_ifs_pl_v2_step{target_step}.grib2")
@@ -273,14 +273,14 @@ def generate_wallpaper():
                 cache_valid = False
 
     if cache_valid:
-        print(f"Fitxers GRIB (+{target_step}h) trobats a la memòria cau local (~/.cache/weatherwallpaper/). Ometent descàrrega.")
+        print(f"GRIB files (+{target_step}h) found in local cache (~/.cache/weatherwallpaper/). Skipping download.")
     else:
-        print(f"Descarregant noves dades de l'ECMWF IFS (pas +{target_step}h)...")
+        print(f"Downloading new data from ECMWF IFS (+{target_step}h step)...")
         success = False
         for src in [active_src, "azure", "aws", "ecmwf"]:
             try:
                 c = Client(source=src)
-                print(f"Descarregant via font '{src}'...")
+                print(f"Downloading via source '{src}'...")
                 c.download(
                     type="fc",
                     step=target_step,
@@ -296,11 +296,11 @@ def generate_wallpaper():
                     param=["t", "gh"],
                     target=pl_cache
                 )
-                print("Descàrrega completada amb èxit!")
+                print("Download completed successfully!")
                 success = True
                 break
             except Exception as e:
-                print(f"Avís: fallada des de la font {src}: {e}")
+                print(f"Warning: Failure from source {src}: {e}")
 
         if not success:
             existing_sfc = glob.glob(os.path.join(cache_dir, "ecmwf_ifs_sfc*.grib2"))
@@ -308,9 +308,9 @@ def generate_wallpaper():
             if existing_sfc and existing_pl:
                 sfc_cache = sorted(existing_sfc)[-1]
                 pl_cache = sorted(existing_pl)[-1]
-                print(f"Utilitzant fitxer de reserva disponible: {sfc_cache}")
+                print(f"Using available fallback file: {sfc_cache}")
 
-    print("Processant conjunts de dades GRIB...")
+    print("Processing GRIB datasets...")
     ds_msl = xr.open_dataset(sfc_cache, engine='cfgrib', backend_kwargs={'filter_by_keys': {'typeOfLevel': 'meanSea'}})
     ds_wind = xr.open_dataset(sfc_cache, engine='cfgrib', backend_kwargs={'filter_by_keys': {'typeOfLevel': 'heightAboveGround', 'level': 10}})
     ds_tp = xr.open_dataset(sfc_cache, engine='cfgrib', backend_kwargs={'filter_by_keys': {'typeOfLevel': 'surface'}})
@@ -321,7 +321,7 @@ def generate_wallpaper():
         try:
             ds_z500 = xr.open_dataset(pl_cache, engine='cfgrib', backend_kwargs={'filter_by_keys': {'typeOfLevel': 'isobaricInhPa', 'level': 500}})
         except Exception as e:
-            print(f"Avís: no s'ha pogut carregar el nivell de 500 hPa: {e}")
+            print(f"Warning: Could not load 500 hPa level: {e}")
 
     msl = ds_msl['msl'] / 100.0  # Pa a hPa
     u10 = ds_wind['u10']
@@ -372,7 +372,7 @@ def generate_wallpaper():
     fig_w = screen_w / dpi
     fig_h = screen_h / dpi
 
-    print(f"Renderitzant fons de pantalla Tokyo Night ({screen_w}x{screen_h} px)...")
+    print(f"Rendering Tokyo Night wallpaper ({screen_w}x{screen_h} px)...")
     proj = ccrs.LambertConformal(
         central_longitude=map_cfg['central_longitude'],
         central_latitude=map_cfg['central_latitude']
@@ -413,8 +413,9 @@ def generate_wallpaper():
     # Precipitation layer (> 1mm) - Translucent cyan/electric blue
     tp_vals = np.where(tp.values >= 1.0, tp.values, np.nan)
     tp_levels = [1, 2, 5, 10, 20, 40, 70, 100]
+    cf_tp = None
     if not np.all(np.isnan(tp_vals)):
-        ax.contourf(
+        cf_tp = ax.contourf(
             lons, lats, tp_vals,
             levels=tp_levels,
             cmap='PuBu_r',
@@ -522,8 +523,8 @@ def generate_wallpaper():
 
     badge_text = (
         f"ECMWF IFS (0.25°){z500_badge}\n"
-        f"Previsió: {valid_utc.strftime('%d/%m/%Y %H:%M UTC')} / {valid_local.strftime('%H:%M %Z')} (+{step_hours}h)\n"
-        f"Inici: {run_utc.strftime('%d/%m/%Y %H:%M UTC')}"
+        f"Forecast: {valid_utc.strftime('%Y-%m-%d %H:%M UTC')} / {valid_local.strftime('%H:%M %Z')} (+{step_hours}h)\n"
+        f"Run: {run_utc.strftime('%Y-%m-%d %H:%M UTC')}"
     )
 
     t_hud = ax.text(
@@ -535,26 +536,53 @@ def generate_wallpaper():
         verticalalignment='bottom',
         horizontalalignment='right',
         fontfamily='DejaVu Sans',
-        fontweight='medium',
+        fontweight='bold',
         zorder=1000
     )
     t_hud.set_path_effects([path_effects.withStroke(linewidth=2.5, foreground='#101216')])
 
-    # 7. Bottom Colorbar Legend for T850 (°C)
-    cbar_ax = fig.add_axes([0.22, 0.035, 0.45, 0.022])
-    cbar_ax.set_facecolor('#16161e')
+    # 7. Bottom Colorbar Legends for T850 (°C) and Precipitation (mm)
+    if cf_tp is not None:
+        # Dual Colorbars (Side-by-Side: T850 on left, Precipitation in center)
+        cbar_t_ax = fig.add_axes([0.04, 0.035, 0.28, 0.020])
+        cbar_t_ax.set_facecolor('#16161e')
+        cbar_t = plt.colorbar(
+            cf_t850,
+            cax=cbar_t_ax,
+            orientation='horizontal',
+            ticks=np.arange(-24, 36, 8)
+        )
+        cbar_t.set_label('850 hPa Temperature (°C)', color='#c0caf5', fontsize=9.5, fontweight='bold', labelpad=4)
+        cbar_t.ax.tick_params(labelsize=8.5, colors='#a9b1d6', length=3)
+        cbar_t.outline.set_edgecolor('#7dcfff')
+        cbar_t.outline.set_linewidth(1.0)
 
-    cbar = plt.colorbar(
-        cf_t850,
-        cax=cbar_ax,
-        orientation='horizontal',
-        ticks=np.arange(-24, 36, 4)
-    )
-
-    cbar.set_label('Temperatura a 850 hPa (°C)', color='#c0caf5', fontsize=10.5, fontweight='bold', labelpad=5)
-    cbar.ax.tick_params(labelsize=9, colors='#a9b1d6', length=3)
-    cbar.outline.set_edgecolor('#7dcfff')
-    cbar.outline.set_linewidth=1.0
+        cbar_tp_ax = fig.add_axes([0.36, 0.035, 0.26, 0.020])
+        cbar_tp_ax.set_facecolor('#16161e')
+        cbar_tp = plt.colorbar(
+            cf_tp,
+            cax=cbar_tp_ax,
+            orientation='horizontal',
+            ticks=tp_levels,
+            format='%g'
+        )
+        cbar_tp.set_label('Accumulated Precipitation (mm)', color='#c0caf5', fontsize=9.5, fontweight='bold', labelpad=4)
+        cbar_tp.ax.tick_params(labelsize=8.5, colors='#a9b1d6', length=3)
+        cbar_tp.outline.set_edgecolor('#bb9af7')
+        cbar_tp.outline.set_linewidth(1.0)
+    else:
+        cbar_t_ax = fig.add_axes([0.04, 0.035, 0.45, 0.020])
+        cbar_t_ax.set_facecolor('#16161e')
+        cbar_t = plt.colorbar(
+            cf_t850,
+            cax=cbar_t_ax,
+            orientation='horizontal',
+            ticks=np.arange(-24, 36, 4)
+        )
+        cbar_t.set_label('850 hPa Temperature (°C)', color='#c0caf5', fontsize=9.5, fontweight='bold', labelpad=4)
+        cbar_t.ax.tick_params(labelsize=8.5, colors='#a9b1d6', length=3)
+        cbar_t.outline.set_edgecolor('#7dcfff')
+        cbar_t.outline.set_linewidth(1.0)
 
     # Save exact screen resolution wallpaper
     plt.savefig(
@@ -565,18 +593,18 @@ def generate_wallpaper():
     )
     plt.close(fig)
 
-    print(f"Fons de pantalla desat correctament ({screen_w}x{screen_h}) a {output_path}")
+    print(f"Wallpaper successfully saved ({screen_w}x{screen_h}) to {output_path}")
 
     # GNOME integration via gsettings
-    print("Actualitzant fons d'escriptori de GNOME...")
+    print("Updating GNOME desktop background...")
     wallpaper_uri = f"file://{output_path}"
     try:
         subprocess.run(["gsettings", "set", "org.gnome.desktop.background", "picture-uri", wallpaper_uri], check=False)
         subprocess.run(["gsettings", "set", "org.gnome.desktop.background", "picture-uri-dark", wallpaper_uri], check=False)
         subprocess.run(["gsettings", "set", "org.gnome.desktop.background", "picture-options", "zoom"], check=False)
-        print("Paràmetres de GNOME actualitzats amb èxit.")
+        print("GNOME settings successfully updated.")
     except Exception as e:
-        print(f"Avís: No s'ha pogut actualitzar gsettings: {e}")
+        print(f"Warning: Could not update gsettings: {e}")
 
     # Clean temporary cfgrib indices and obsolete GRIB2 datasets
     current_files = {os.path.basename(sfc_cache), os.path.basename(pl_cache)}
@@ -584,9 +612,9 @@ def generate_wallpaper():
         if os.path.basename(grib_file) not in current_files:
             try:
                 os.remove(grib_file)
-                print(f"Esborrat fitxer de dades obsolet: {os.path.basename(grib_file)}")
+                print(f"Deleted obsolete data file: {os.path.basename(grib_file)}")
             except OSError as e:
-                print(f"Avís: no s'ha pogut esborrar {grib_file}: {e}")
+                print(f"Warning: Could not delete {grib_file}: {e}")
 
     for idx in glob.glob(os.path.join(cache_dir, "*.idx")) + glob.glob("/tmp/*.idx"):
         try:

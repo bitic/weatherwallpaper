@@ -1,7 +1,7 @@
 [project]
 name = "weatherwallpaper"
 version = "0.1.0"
-description = "Fons de pantalla meteorològic dinàmic per a GNOME basat en dades ECMWF IFS i estètica Tokyo Night."
+description = "Dynamic weather desktop wallpaper for GNOME based on ECMWF IFS data and Tokyo Night aesthetic."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
