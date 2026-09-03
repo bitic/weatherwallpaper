@@ -11,29 +11,21 @@ This document defines architectural constraints, design standards, and coding co
 
 ---
 
-## 2. Design System & Aesthetics (Tokyo Night Theme)
-- **Primary Aesthetic**: Modern dark mode with high contrast inspired by *Tokyo Night*.
-- **Color Palette**:
-  - Figure background: `#1a1b26`
-  - Map background: `#16161e`
-  - Land background: `#1f2335`
-  - Ocean background: `#13141f`
-  - Coastlines: `#000000` (linewidth: 1.4)
-  - Borders: `#565f89` (linestyle: dotted)
-  - MSLP Isobars: `#c0caf5` (linewidth: 1.0)
-  - High Pressure Centers ('H'): `#7dcfff` (bold, stroke: `#101216`)
-  - Low Pressure Centers ('L'): `#f7768e` (bold, stroke: `#101216`)
-  - Z500 Isohypses: `#ff9e64` (dashed, linewidth: 1.2, step: 8 gpdm)
-  - Precipitation Layer: `PuBu_r` colormap (> 1 mm, alpha: 0.6)
+## 2. Design System & Modular Themes
+- **Primary Aesthetic**: Modern high-contrast dark themes defined in `themes/`.
+- **Default Theme**: `dracula` (`themes/dracula.conf`).
+- **Theme Files**: Each theme in `themes/*.conf` defines `fig_bg`, `map_bg`, `land`, `ocean`, `coastline`, `borders`, `mslp_line`, `mslp_text`, `high_h`, `low_l`, `z500_color`, and `t850_colors`.
 
 ---
 
 ## 3. Configuration Philosophy (Keep it Simple)
-- **Minimal Dotfile**: Keep `~/.weatherwallpaper.conf` focused strictly on spatial extent and primary feature toggles:
+- **Minimal Dotfile**: Keep `~/.weatherwallpaper.conf` focused strictly on spatial extent, primary feature toggles, and active theme:
   - `central_longitude`, `central_latitude`
   - `min_longitude`, `max_longitude`, `min_latitude`, `max_latitude`
   - `show_z500` (boolean)
-- **Hardcoded Styling**: Do NOT bloat the configuration file with visual style knobs (colors, line weights, font sizes). Keep design constants fixed inside `generate_wallpaper.py`.
+  - `theme` (string, defaults to `dracula`)
+- **Theme Architecture**: Individual color themes are kept inside `themes/*.conf` files.
+
 
 ---
 

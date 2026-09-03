@@ -20,7 +20,6 @@ import cartopy.feature as cfeature
 
 # Constant visual design parameters for Z500 layer
 Z500_STEP = 8            # 8 gpdm = 80 gpm step between isohypses
-Z500_COLOR = "#ff9e64"    # Tokyo Night vibrant orange
 Z500_LINESTYLE = "dashed" # Dashed isohypse lines
 
 def get_screen_resolution():
@@ -65,7 +64,7 @@ def get_screen_resolution():
     return 1920, 1080
 
 def load_config():
-    """Loads map center coordinates, extent, and show_z500 toggle from dotfile ~/.weatherwallpaper.conf."""
+    """Loads map center coordinates, extent, show_z500 toggle, and active theme from dotfile ~/.weatherwallpaper.conf."""
     config_paths = [
         os.path.expanduser("~/.weatherwallpaper.conf"),
         os.path.expanduser("~/.config/weatherwallpaper/config.conf"),
@@ -79,7 +78,8 @@ def load_config():
         'max_longitude': 20.0,
         'min_latitude': 28.0,
         'max_latitude': 58.0,
-        'show_z500': True
+        'show_z500': True,
+        'theme': 'dracula'
     }
     
     config = configparser.ConfigParser()
@@ -99,7 +99,8 @@ def load_config():
             'max_longitude': '20.0',
             'min_latitude': '28.0',
             'max_latitude': '58.0',
-            'show_z500': 'True'
+            'show_z500': 'True',
+            'theme': 'dracula'
         }
         try:
             with open(default_path, 'w') as f:
@@ -119,33 +120,87 @@ def load_config():
             'max_longitude': float(section.get('max_longitude', defaults['max_longitude'])),
             'min_latitude': float(section.get('min_latitude', defaults['min_latitude'])),
             'max_latitude': float(section.get('max_latitude', defaults['max_latitude'])),
-            'show_z500': section.getboolean('show_z500', fallback=defaults['show_z500'])
+            'show_z500': section.getboolean('show_z500', fallback=defaults['show_z500']),
+            'theme': str(section.get('theme', defaults['theme'])).strip()
         }
-        print(f"Configuration loaded from '{found_file}': Center=({cfg['central_longitude']}, {cfg['central_latitude']}), Z500={cfg['show_z500']}")
+        print(f"Configuration loaded from '{found_file}': Center=({cfg['central_longitude']}, {cfg['central_latitude']}), Z500={cfg['show_z500']}, Theme='{cfg['theme']}'")
     except Exception as e:
         print(f"Warning: Error reading configuration ({e}). Using default values.")
         cfg = defaults
 
     return cfg
 
-def create_tokyo_night_cmap():
-    """Creates a custom vibrant Tokyo Night temperature colormap."""
-    tokyo_colors = [
-        "#0f172a", # -24°C Deep dark navy
-        "#1e3a8a", # -18°C Deep blue
-        "#2563eb", # -12°C Bright blue
-        "#38bdf8", # -6°C Electric cyan
-        "#2dd4bf", # 0°C Mint green (Freezing point)
-        "#34d399", # 4°C Soft emerald
-        "#a3e635", # 8°C Lime green
-        "#facc15", # 12°C Warm yellow
-        "#fb923c", # 16°C Sunset orange
-        "#f87171", # 20°C Coral red
-        "#e11d48", # 24°C Crimson
-        "#9333ea", # 28°C Neon purple
-        "#4c1d95"  # 32°C Deep violet
+def load_theme(theme_name="dracula"):
+    """Loads a theme configuration file from the themes/ directory."""
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    possible_paths = [
+        os.path.join(script_dir, "themes", f"{theme_name}.conf"),
+        os.path.expanduser(f"~/.config/weatherwallpaper/themes/{theme_name}.conf"),
+        os.path.expanduser(f"~/.weatherwallpaper/themes/{theme_name}.conf"),
+        os.path.join(script_dir, "themes", "dracula.conf")
     ]
-    return LinearSegmentedColormap.from_list("tokyo_night_t850", tokyo_colors, N=256)
+
+    # Default fallback (Dracula Neon)
+    theme = {
+        'name': 'dracula',
+        'fig_bg': '#282a36',
+        'map_bg': '#282a36',
+        'land': '#44475a',
+        'ocean': '#1d1e26',
+        'coastline': '#f8f8f2',
+        'borders': '#6272a4',
+        'mslp_line': '#f8f8f2',
+        'mslp_text': '#ffffff',
+        'high_h': '#8be9fd',
+        'low_l': '#ff79c6',
+        'z500_color': '#ffb86c',
+        't850_colors': [
+            '#191a21', '#21222c', '#6272a4', '#8be9fd', '#50fa7b',
+            '#f1fa8c', '#ffb86c', '#ff5555', '#ff79c6', '#bd93f9'
+        ]
+    }
+
+    found_file = None
+    for p in possible_paths:
+        if os.path.exists(p):
+            found_file = p
+            break
+
+    if found_file:
+        try:
+            config = configparser.ConfigParser()
+            config.read(found_file)
+            sec = config['THEME'] if 'THEME' in config else (config[config.sections()[0]] if config.sections() else {})
+            theme['name'] = sec.get('name', theme_name)
+            theme['fig_bg'] = sec.get('fig_bg', theme['fig_bg'])
+            theme['map_bg'] = sec.get('map_bg', theme['map_bg'])
+            theme['land'] = sec.get('land', theme['land'])
+            theme['ocean'] = sec.get('ocean', theme['ocean'])
+            theme['coastline'] = sec.get('coastline', theme['coastline'])
+            theme['borders'] = sec.get('borders', theme['borders'])
+            theme['mslp_line'] = sec.get('mslp_line', theme['mslp_line'])
+            theme['mslp_text'] = sec.get('mslp_text', theme['mslp_text'])
+            theme['high_h'] = sec.get('high_h', theme['high_h'])
+            theme['low_l'] = sec.get('low_l', theme['low_l'])
+            theme['z500_color'] = sec.get('z500_color', theme['z500_color'])
+
+            t850_raw = sec.get('t850_colors', '')
+            if t850_raw:
+                colors_list = [c.strip() for c in t850_raw.split(',') if c.strip()]
+                if colors_list:
+                    theme['t850_colors'] = colors_list
+            print(f"Theme '{theme_name}' loaded from '{found_file}'")
+        except Exception as e:
+            print(f"Warning: Could not load theme file '{found_file}' ({e}). Falling back to default Dracula theme.")
+    else:
+        print(f"Warning: Theme '{theme_name}' not found. Falling back to default Dracula theme.")
+
+    return theme
+
+def create_theme_cmap(theme):
+    """Creates a custom 850 hPa temperature colormap from theme colors."""
+    return LinearSegmentedColormap.from_list(f"t850_{theme['name']}", theme['t850_colors'], N=256)
+
 
 def get_ecmwf_client_and_latest():
     """Tries cloud mirrors (azure, aws, ecmwf) to get client and latest available run time quickly."""
@@ -241,6 +296,9 @@ def generate_wallpaper():
 
     # 1. Load map configuration from dotfile ~/.weatherwallpaper.conf
     map_cfg = load_config()
+
+    # Load visual theme configuration
+    theme = load_theme(map_cfg.get('theme', 'dracula'))
 
     # 2. Detect dynamic screen resolution of current machine
     screen_w, screen_h = get_screen_resolution()
@@ -367,12 +425,12 @@ def generate_wallpaper():
     lons = msl.longitude.values
     lats = msl.latitude.values
 
-    # 5. Figure Setup for Tokyo Night Theme with Configurable Map Center & Extent
+    # 5. Figure Setup with Configurable Theme & Map Bounds
     dpi = 100
     fig_w = screen_w / dpi
     fig_h = screen_h / dpi
 
-    print(f"Rendering Tokyo Night wallpaper ({screen_w}x{screen_h} px)...")
+    print(f"Rendering wallpaper with theme '{theme['name']}' ({screen_w}x{screen_h} px)...")
     proj = ccrs.LambertConformal(
         central_longitude=map_cfg['central_longitude'],
         central_latitude=map_cfg['central_latitude']
@@ -380,11 +438,11 @@ def generate_wallpaper():
     data_crs = ccrs.PlateCarree()
 
     fig = plt.figure(figsize=(fig_w, fig_h), dpi=dpi)
-    fig.patch.set_facecolor('#1a1b26')
+    fig.patch.set_facecolor(theme['fig_bg'])
 
     # Main map axis filling screen completely (0, 0, 1, 1)
     ax = fig.add_axes([0, 0, 1, 1], projection=proj)
-    ax.set_facecolor('#16161e')
+    ax.set_facecolor(theme['map_bg'])
     ax.set_extent([
         map_cfg['min_longitude'],
         map_cfg['max_longitude'],
@@ -393,12 +451,12 @@ def generate_wallpaper():
     ], crs=data_crs)
     ax.set_aspect('auto') # Adjust aspect ratio dynamically to fill exact screen bounds!
 
-    # Tokyo Night Map Base Features
-    ax.add_feature(cfeature.LAND, facecolor='#1f2335', edgecolor='none')
-    ax.add_feature(cfeature.OCEAN, facecolor='#13141f', edgecolor='none')
+    # Map Base Features
+    ax.add_feature(cfeature.LAND, facecolor=theme['land'], edgecolor='none')
+    ax.add_feature(cfeature.OCEAN, facecolor=theme['ocean'], edgecolor='none')
 
-    # Base layer: Temperature at 850 hPa (°C) with Tokyo Night palette
-    cmap_t850 = create_tokyo_night_cmap()
+    # Base layer: Temperature at 850 hPa (°C) with active theme palette
+    cmap_t850 = create_theme_cmap(theme)
     t_levels = np.arange(-24, 34, 1.5)
     cf_t850 = ax.contourf(
         lons, lats, t850.values,
@@ -434,18 +492,18 @@ def generate_wallpaper():
         cs_z = ax.contour(
             lons, lats, z500.values,
             levels=z_levels,
-            colors=Z500_COLOR,
+            colors=theme['z500_color'],
             linewidths=1.2,
             linestyles=Z500_LINESTYLE,
             alpha=0.85,
             transform=data_crs,
             zorder=35
         )
-        clabels_z = ax.clabel(cs_z, fmt='%d', inline=True, fontsize=8.5, colors=Z500_COLOR)
+        clabels_z = ax.clabel(cs_z, fmt='%d', inline=True, fontsize=8.5, colors=theme['z500_color'])
         for txt in clabels_z:
-            txt.set_path_effects([path_effects.withStroke(linewidth=2.0, foreground='#16161e')])
+            txt.set_path_effects([path_effects.withStroke(linewidth=2.0, foreground=theme['map_bg'])])
 
-    # Layer: MSLP isobars (thin light gray/white lines every 4 hPa)
+    # Layer: MSLP isobars
     msl_min = int(np.floor(msl.values.min() / 4.0) * 4)
     msl_max = int(np.ceil(msl.values.max() / 4.0) * 4)
     msl_levels = np.arange(msl_min, msl_max + 4, 4)
@@ -453,15 +511,15 @@ def generate_wallpaper():
     cs = ax.contour(
         lons, lats, msl.values,
         levels=msl_levels,
-        colors='#c0caf5',
+        colors=theme['mslp_line'],
         linewidths=1.0,
         alpha=0.85,
         transform=data_crs,
         zorder=40
     )
-    clabels = ax.clabel(cs, fmt='%d', inline=True, fontsize=9, colors='#ffffff')
+    clabels = ax.clabel(cs, fmt='%d', inline=True, fontsize=9, colors=theme['mslp_text'])
     for txt in clabels:
-        txt.set_path_effects([path_effects.withStroke(linewidth=2.5, foreground='#16161e')])
+        txt.set_path_effects([path_effects.withStroke(linewidth=2.5, foreground=theme['map_bg'])])
 
     # Wind 10m streamplot
     ax.streamplot(
@@ -474,20 +532,20 @@ def generate_wallpaper():
         zorder=45
     )
 
-    # Prominent Black Coastlines & Country Borders
-    ax.add_feature(cfeature.COASTLINE, edgecolor='#000000', linewidth=1.4, zorder=50)
-    ax.add_feature(cfeature.BORDERS, linestyle=':', edgecolor='#565f89', linewidth=0.8, alpha=0.8, zorder=51)
+    # Coastlines & Country Borders
+    ax.add_feature(cfeature.COASTLINE, edgecolor=theme['coastline'], linewidth=1.4, zorder=50)
+    ax.add_feature(cfeature.BORDERS, linestyle=':', edgecolor=theme['borders'], linewidth=0.8, alpha=0.8, zorder=51)
 
     # Draw High ('H') and Low ('L') Pressure Centers
-    stroke_effect = [path_effects.withStroke(linewidth=3.0, foreground='#101216')]
+    stroke_effect = [path_effects.withStroke(linewidth=3.0, foreground=theme['fig_bg'])]
     
-    # High Pressure Centers ('H' cyan)
+    # High Pressure Centers
     for hlon, hlat, hval in highs:
         lbl_text = f"H\n{int(round(hval))}"
         txt = ax.text(
             hlon, hlat, lbl_text,
             transform=data_crs,
-            color="#7dcfff",
+            color=theme['high_h'],
             fontsize=13,
             fontweight="bold",
             horizontalalignment="center",
@@ -496,13 +554,13 @@ def generate_wallpaper():
         )
         txt.set_path_effects(stroke_effect)
 
-    # Low Pressure Centers ('L' pink/red)
+    # Low Pressure Centers
     for llon, llat, lval in lows:
         lbl_text = f"L\n{int(round(lval))}"
         txt = ax.text(
             llon, llat, lbl_text,
             transform=data_crs,
-            color="#f7768e",
+            color=theme['low_l'],
             fontsize=13,
             fontweight="bold",
             horizontalalignment="center",
@@ -511,7 +569,7 @@ def generate_wallpaper():
         )
         txt.set_path_effects(stroke_effect)
 
-    # 6. HUD Info Text (Bottom Right corner, transparent without box, local & UTC time, active layers)
+    # 6. HUD Info Text
     valid_utc = pd.to_datetime(valid_time).tz_localize('UTC')
     valid_local = valid_utc.tz_convert('Europe/Madrid')
 
@@ -539,13 +597,13 @@ def generate_wallpaper():
         fontweight='bold',
         zorder=1000
     )
-    t_hud.set_path_effects([path_effects.withStroke(linewidth=2.5, foreground='#101216')])
+    t_hud.set_path_effects([path_effects.withStroke(linewidth=2.5, foreground=theme['fig_bg'])])
 
     # 7. Bottom Colorbar Legends for T850 (°C) and Precipitation (mm)
     if cf_tp is not None:
         # Dual Colorbars (Side-by-Side: T850 on left, Precipitation in center)
         cbar_t_ax = fig.add_axes([0.04, 0.035, 0.28, 0.020])
-        cbar_t_ax.set_facecolor('#16161e')
+        cbar_t_ax.set_facecolor(theme['map_bg'])
         cbar_t = plt.colorbar(
             cf_t850,
             cax=cbar_t_ax,
@@ -554,11 +612,11 @@ def generate_wallpaper():
         )
         cbar_t.set_label('850 hPa Temperature (°C)', color='#c0caf5', fontsize=9.5, fontweight='bold', labelpad=4)
         cbar_t.ax.tick_params(labelsize=8.5, colors='#a9b1d6', length=3)
-        cbar_t.outline.set_edgecolor('#7dcfff')
+        cbar_t.outline.set_edgecolor(theme['high_h'])
         cbar_t.outline.set_linewidth(1.0)
 
         cbar_tp_ax = fig.add_axes([0.36, 0.035, 0.26, 0.020])
-        cbar_tp_ax.set_facecolor('#16161e')
+        cbar_tp_ax.set_facecolor(theme['map_bg'])
         cbar_tp = plt.colorbar(
             cf_tp,
             cax=cbar_tp_ax,
@@ -568,11 +626,11 @@ def generate_wallpaper():
         )
         cbar_tp.set_label('Accumulated Precipitation (mm)', color='#c0caf5', fontsize=9.5, fontweight='bold', labelpad=4)
         cbar_tp.ax.tick_params(labelsize=8.5, colors='#a9b1d6', length=3)
-        cbar_tp.outline.set_edgecolor('#bb9af7')
+        cbar_tp.outline.set_edgecolor(theme['z500_color'])
         cbar_tp.outline.set_linewidth(1.0)
     else:
         cbar_t_ax = fig.add_axes([0.04, 0.035, 0.45, 0.020])
-        cbar_t_ax.set_facecolor('#16161e')
+        cbar_t_ax.set_facecolor(theme['map_bg'])
         cbar_t = plt.colorbar(
             cf_t850,
             cax=cbar_t_ax,
@@ -581,8 +639,9 @@ def generate_wallpaper():
         )
         cbar_t.set_label('850 hPa Temperature (°C)', color='#c0caf5', fontsize=9.5, fontweight='bold', labelpad=4)
         cbar_t.ax.tick_params(labelsize=8.5, colors='#a9b1d6', length=3)
-        cbar_t.outline.set_edgecolor('#7dcfff')
+        cbar_t.outline.set_edgecolor(theme['high_h'])
         cbar_t.outline.set_linewidth(1.0)
+
 
     # Save exact screen resolution wallpaper
     plt.savefig(

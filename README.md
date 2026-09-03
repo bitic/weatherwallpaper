@@ -63,7 +63,10 @@ max_longitude = 20.0
 min_latitude = 28.0
 max_latitude = 58.0
 show_z500 = True
+theme = dracula
 ```
+
+Available themes in `themes/`: `dracula` (default), `tokyo_night`, `nord`, `catppuccin`, `abyssal_cyber`.
 
 ---
 
@@ -90,6 +93,12 @@ journalctl --user -u synoptic-bg.service -f
 weatherwallpaper/
 ├── assets/
 │   └── preview.png        # Sample wallpaper preview for documentation
+├── themes/                # Color theme definitions (.conf)
+│   ├── dracula.conf       # Default high-contrast Dracula theme
+│   ├── tokyo_night.conf   # Classic Tokyo Night theme
+│   ├── nord.conf          # Cool Nord Arctic theme
+│   ├── catppuccin.conf    # Soft Catppuccin Mocha pastel theme
+│   └── abyssal_cyber.conf # Cyberpunk deep ocean teal theme
 ├── generate_wallpaper.py  # Main Python script for data retrieval and map rendering
 ├── install.sh             # Setup script for dependencies and systemd integration
 ├── pyproject.toml         # Python project configuration and dependency list
@@ -100,6 +109,7 @@ weatherwallpaper/
 ├── LICENSE                # MIT License
 └── README.md              # Project documentation
 ```
+
 
 ---
 
